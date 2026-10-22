@@ -9,18 +9,21 @@ import fleet_utils
 
 
 def car_wear(car):
-    last = car["last_service_km"]                 # crashes if a car has no reading
-    return wear_percent(car["odometer"] - last, SERVICE_INTERVAL_KM)
+    if "last_service_km" not in car:
+        return None
+    return wear_percent(car["odometer"] - car["last_service_km"], SERVICE_INTERVAL_KM)
 
 
 def fleet_summary(fleet):
-    total = 0
     due = 0
+    wear_values = []
     for car in fleet:
-        total = total + car_wear(car)
-        if needs_service(car) == True:
-            due = due + 1
-    average = total // len(fleet)                 # whole-number division loses the average
+        w = car_wear(car)
+        if w is not None:
+            wear_values.append(w)
+        if needs_service(car):
+            due += 1
+    average = sum(wear_values) / len(wear_values) if wear_values else 0.0
     return {"count": len(fleet), "due": due, "average_wear": average}
 
 
@@ -30,7 +33,7 @@ def print_report(fleet):
     s = fleet_summary(fleet)
     print("Fleet: %d cars" % s["count"])
     print("Due for service: %d" % s["due"])
-    print("Average wear: %d%%" % s["average_wear"])
+    print("Average wear: %.1f%%" % s["average_wear"])
     total_km = 0
     for car in fleet:
         total_km = total_km + car["odometer"]
