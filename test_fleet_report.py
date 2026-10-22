@@ -13,11 +13,13 @@ def test_summary_counts_due_cars():
 
 
 def test_summary_does_not_crash_on_missing_reading():
-    # A car with no "last_service_km" must not crash fleet_summary; it is excluded from the average.
+    # VOS-7788 has no last_service_km: fleet_summary must not crash, and the average
+    # must reflect only VOS-4471 (14900 km of 15000 → 99.33…%), not VOS-7788.
     fleet = [
         {"id": "VOS-4471", "odometer": 14900, "last_service_km": 0},
         {"id": "VOS-7788", "odometer": 92000},
     ]
     result = fleet_summary(fleet)
-    assert "average_wear" in result
     assert result["count"] == 2
+    expected_avg = 14900 / 15000 * 100   # only VOS-4471 contributes
+    assert abs(result["average_wear"] - expected_avg) < 0.01
